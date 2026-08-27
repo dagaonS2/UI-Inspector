@@ -14,6 +14,7 @@ import { AstroConverter } from "./converters/astro.mjs";
 import { RemixConverter } from "./converters/remix.mjs";
 import { InjectProxy } from "./inject-proxy.mjs";
 import { generateInspectorScript } from "./inspector-inject.mjs";
+import { resolveInside } from "./path-safety.mjs";
 
 /**
  * @typedef {Object} PreviewSession
@@ -294,10 +295,7 @@ export class PreviewManager {
     // Write files
     for (const [relPath, content] of Object.entries(files)) {
       try {
-        const absPath = path.resolve(session.projectDir, relPath);
-        if (!absPath.startsWith(path.resolve(session.projectDir))) {
-          throw new Error(`Path traversal blocked: ${relPath}`);
-        }
+        const absPath = resolveInside(session.projectDir, relPath);
         fs.mkdirSync(path.dirname(absPath), { recursive: true });
         fs.writeFileSync(absPath, content, "utf8");
         updated.push(relPath);
@@ -309,12 +307,12 @@ export class PreviewManager {
     // Delete files
     for (const relPath of deleteFiles) {
       try {
-        const absPath = path.resolve(session.projectDir, relPath);
-        if (!absPath.startsWith(path.resolve(session.projectDir))) {
-          throw new Error(`Path traversal blocked: ${relPath}`);
-        }
+        const absPath = resolveInside(session.projectDir, relPath);
         if (fs.existsSync(absPath)) {
-          fs.rmSync(absPath, { force: true });
+          if (fs.lstatSync(absPath).isDirectory()) {
+            throw new Error(`Only files can be deleted: ${relPath}`);
+          }
+          fs.unlinkSync(absPath);
           deleted.push(relPath);
         }
       } catch (err) {
@@ -598,7 +596,7 @@ export class PreviewManager {
   /**
    * Build an agent-ready markdown prompt from annotations (Agentation-style).
    * The same format is produced by the in-browser "Copy Prompt" button, so
-   * output can be pasted into any coding agent (Claude Code, Codex, ...).
+   * output can be pasted into Codex or any other coding agent.
    *
    * @param {string} [sessionId]
    * @param {"open" | "resolved" | "all"} [status="open"]
@@ -694,7 +692,7 @@ export class PreviewManager {
     if (session.mode === "attached") {
       throw new Error("Export is not available for attached sessions.");
     }
-    const exportFileName = `gemini-export-${session.projectName}-${targetFramework}.zip`;
+    const exportFileName = `ui-inspector-export-${session.projectName}-${targetFramework}.zip`;
 
     if (outputPath) {
       // User-specified path: expand ~ and handle directory vs file

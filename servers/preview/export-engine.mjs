@@ -30,7 +30,7 @@ export class ExportEngine {
     const exportName = `${projectName}-${targetFramework}`;
 
     // 2. Create temp work directory
-    const tempBase = path.join(os.tmpdir(), "gemini-export");
+    const tempBase = path.join(os.tmpdir(), "ui-inspector-export");
     fs.mkdirSync(tempBase, { recursive: true });
     const workDir = path.join(tempBase, exportName);
     if (fs.existsSync(workDir)) {

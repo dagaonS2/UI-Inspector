@@ -10,7 +10,7 @@ inner.className = "text-center";
 
 const heading = document.createElement("h1");
 heading.className = "text-4xl font-bold text-gray-900 mb-4";
-heading.textContent = "Gemini Preview";
+heading.textContent = "UI Inspector Preview";
 
 const paragraph = document.createElement("p");
 paragraph.className = "text-gray-600";

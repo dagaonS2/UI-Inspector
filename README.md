@@ -1,97 +1,156 @@
-# UI Inspector
+# UI Inspector for Codex
 
-Live preview + element inspector MCP server for Claude Code. Click any DOM element in a running preview and Claude instantly sees the **exact element name** (component, id, aria-label, …), code location, computed styles, parent chain, and UI/UX terminology — then edits the file directly.
+[beyondworks/UI-Inspector](https://github.com/beyondworks/UI-Inspector)를 OpenAI Codex에서 바로 사용할 수 있도록 설정한 포크입니다.
 
-No external LLM calls. All reasoning happens in Claude itself.
+실행 중인 웹 화면의 DOM 요소를 클릭하면 Codex가 컴포넌트 이름, 소스 위치, 계산된 스타일, 부모 구조, UI/UX 용어를 MCP 도구로 읽고 해당 코드를 수정할 수 있습니다. MCP 서버 자체는 외부 LLM API를 호출하지 않습니다.
 
-## Install
+## Codex용 변경 사항
+
+- 저장소 범위 MCP 설정: `.codex/config.toml`
+- 선택 요소와 annotation을 처리하는 Codex 작업 규칙: `AGENTS.md`
+- Claude 전용 설치 문구를 Codex 설치·검증 절차로 변경
+- `npm test`로 로컬 디자인 지식·검증 엔진을 확인할 수 있도록 스크립트 추가
+
+## 준비물
+
+- [Node.js](https://nodejs.org/) 18.14.1 이상(권장: 현재 LTS)
+- OpenAI Codex 데스크톱 앱, IDE 확장 또는 CLI
+
+확인:
+
+```bash
+node --version
+npm --version
+```
+
+`node` 명령을 찾을 수 없다면 Node.js를 설치한 다음 Codex를 다시 시작하세요.
+
+## 설치
+
+```bash
+git clone https://github.com/dagaonS2/UI-Inspector.git
+cd UI-Inspector/servers
+npm ci
+```
+
+이 포크에는 다음 프로젝트 범위 설정이 이미 포함되어 있습니다.
+
+```toml
+[mcp_servers.ui_inspector]
+command = "node"
+args = ["servers/inspector-server.mjs"]
+cwd = "."
+enabled = true
+```
+
+1. Codex에서 `UI-Inspector` 저장소 **루트**를 엽니다.
+2. 새 task를 시작하거나 Codex를 다시 시작해 `.codex/config.toml`을 다시 불러옵니다.
+3. MCP 서버 목록에서 `ui_inspector`가 활성화됐는지 확인합니다.
+
+CLI에서 사용자 전역 설정으로 직접 등록해야 하는 경우에는 저장소 경로를 절대 경로로 바꿔 다음처럼 실행할 수 있습니다.
+
+```bash
+codex mcp add ui_inspector -- node "C:\absolute\path\UI-Inspector\servers\inspector-server.mjs"
+codex mcp list
+```
+
+프로젝트 설정과 전역 설정에 같은 이름의 서버를 중복 등록하지 마세요.
+
+## 가장 빠른 사용법
+
+기존 웹 프로젝트가 `http://localhost:3000`에서 실행 중이라면 Codex에 다음처럼 요청합니다.
+
+```text
+UI Inspector로 http://localhost:3000에 연결해줘.
+```
+
+브라우저가 열리면 오른쪽 아래 툴바를 사용합니다.
+
+1. **Inspect**를 누르고 요소를 클릭합니다.
+2. Codex에 “선택한 요소의 padding을 24px로 바꿔줘”처럼 요청합니다.
+3. 여러 수정 사항은 **Annotate**로 메모합니다.
+4. Codex에 “열린 annotation을 모두 반영하고 검증해줘”라고 요청합니다.
+5. 수정이 검증되면 annotation 핀이 초록색 체크로 바뀝니다.
+
+`Esc`를 누르면 열린 대화상자나 Inspect/Annotate 모드를 닫을 수 있습니다.
+
+## 도구 18개
+
+### Preview (8)
+
+- `preview_start` — React/Vue/Vanilla Vite 프리뷰 시작
+- `preview_attach` — 실행 중인 Next.js/Vite 등의 개발 서버에 인스펙터 프록시 연결
+- `preview_update` — 프리뷰 파일 수정·삭제 후 HMR 반영
+- `preview_status` — 세션 상태 확인
+- `preview_stop` — 세션 종료
+- `preview_export` — 대상 프레임워크로 변환해 ZIP 내보내기
+- `preview_screenshot` — 현재는 Phase 2 자리표시자이며 이미지 대신 안내 메시지를 반환
+- `preview_errors` — 런타임 오류와 `console.error` 확인
+
+### Inspector (4)
+
+- `preview_select_element` — 인스펙터 모드 켜기·끄기 또는 세션 선택 조회
+- `inspector_get_selection` — 모든 세션에서 가장 최근에 클릭한 요소 조회
+- `inspector_clear_selection` — 현재 선택 지우기
+- `inspector_highlight` — CSS selector 또는 `data-at`으로 요소 강조
+
+### Annotations (4)
+
+- `annotation_list` — 브라우저에 남긴 핀과 코멘트 조회
+- `annotation_resolve` — 수정 완료 항목을 해결 처리하고 메모 남기기
+- `annotation_remove` — 지정한 annotation 삭제
+- `annotation_to_prompt` — annotation을 코딩 에이전트용 Markdown 작업 목록으로 변환
+
+### Knowledge (2)
+
+- `query_ontology` — 로컬 디자인 지식 저장소 검색
+- `validate_design` — 대비, 터치 타깃, 계층, 간격 규칙 검증
+
+## Annotation 작업 방식
+
+- 같은 요소에 여러 핀을 남길 수 있습니다.
+- Annotate 모드에서 드래그하면 최대 30개 요소를 하나의 그룹 annotation으로 묶을 수 있습니다.
+- 핀은 페이지 경로별로 표시되지만 MCP 도구는 모든 페이지의 annotation을 조회할 수 있습니다.
+- **Copy Prompt**는 현재 페이지의 열린 annotation을 Markdown 작업 목록으로 복사합니다.
+- 일괄 삭제는 실수 방지를 위해 두 번 확인합니다.
+
+각 annotation에는 코멘트, 상태, 요소 이름, CSS 경로, 소스 위치(`data-at`), 계산된 스타일, 텍스트, 크기와 HTML 일부가 포함됩니다.
+
+> Annotation UI는 `preview_attach`의 주입 프록시에서 제공됩니다. `preview_start`로 만든 세션에서 annotation이 필요하면 생성된 Vite URL에 `preview_attach`를 한 번 더 사용하세요.
+
+## Codex가 클릭에서 얻는 정보
+
+`inspector_get_selection`은 다음 정보를 반환합니다.
+
+- `sourceLocation` — `{ file, line, column }`
+- `elementName` — id, test id, aria label, component name 등을 우선순위로 해석한 정확한 이름
+- `uiTerm` / `uiDescription` — Card, Hero Section, Stack Layout 같은 UI/UX 용어
+- `tag`, `className`, `textContent`
+- `boundingRect`
+- `computedStyles` — 배경색, 글자색, 폰트, padding, margin, display, position, 크기, radius, gap
+- `parentChain`
+
+## 검증
 
 ```bash
 cd servers
-npm install
+npm test
+npm start
 ```
 
-Register the MCP server in `~/.claude.json` (replace `</path/to>` with your absolute checkout path):
+`npm start`가 `[ui-inspector] MCP server running on stdio`를 출력하면 서버가 정상적으로 시작된 것입니다. 확인 후 `Ctrl+C`로 종료하세요.
 
-```json
-"ui-inspector": {
-  "type": "stdio",
-  "command": "node",
-  "args": ["</path/to>/ui-inspector/servers/inspector-server.mjs"]
-}
-```
+문제가 생기면 다음 순서로 확인하세요.
 
-Restart Claude Code.
+1. `node --version`이 18.14.1 이상인지 확인
+2. `servers/node_modules`가 없다면 `npm ci` 다시 실행
+3. Codex에서 저장소 루트를 열었는지 확인
+4. MCP 서버 목록에서 `ui_inspector` 상태 확인
+5. 설정 변경 후 새 task를 시작하거나 Codex 다시 시작
 
-## Tools (18)
+현재 버전의 `preview_screenshot`은 실제 이미지를 만들지 않습니다. 시각 확인은 반환된 `preview_url`을 브라우저에서 열어 진행하세요.
 
-### Preview (8)
-- `preview_start` — new Vite session (react / vue / vanilla template)
-- `preview_attach` — attach to an existing Next.js/Vite/etc. dev server via inject proxy
-- `preview_update` — write/delete files and trigger Vite HMR
-- `preview_status`
-- `preview_stop`
-- `preview_export` — convert to target framework + zip
-- `preview_screenshot` — capture viewport or single selector (mobile / tablet / desktop / full)
-- `preview_errors` — runtime errors captured from the page (uncaught errors, unhandled rejections, `console.error`)
+## 원본과 출처
 
-### Inspector (4)
-- `preview_select_element` — enable/disable inspector mode or fetch selection (session-scoped)
-- `inspector_get_selection` — most recent click across all sessions; called when the user says "this", "here", "the selected one"
-- `inspector_clear_selection`
-- `inspector_highlight` — agent → browser visual pointing: flash-highlight an element by CSS selector or `data-at` value, with optional label ("여기 수정했어요")
-
-### Annotations (4) — Agentation-style multi-annotation
-- `annotation_list` — all annotations (pins + comments) left by the user in the browser, with full element context
-- `annotation_resolve` — mark annotations resolved (pins turn green live in the browser) with an optional note; `reopen: true` to undo
-- `annotation_remove` — delete annotations (ids or all)
-- `annotation_to_prompt` — convert annotations into an agent-ready markdown task list (same format as the in-browser **Copy Prompt** button — paste into Claude Code, Codex, or any coding agent)
-
-### Knowledge (2)
-- `query_ontology` — local design knowledge store
-- `validate_design` — contrast / tap target / hierarchy / spacing rules
-
-## Annotations — Agentation-style workflow
-
-The injected toolbar (bottom-right) is a monochrome capsule cluster: a **◉ brand circle** (click = exit all modes), a mode capsule with **Inspect | Annotate | Manage ▾**, and a **Copy Prompt (open/total)** CTA capsule that inverts on hover. Press **ESC** any time to exit Inspect/Annotate mode (it first closes an open dialog, pin popup, or menu). The side panel renders as white ticket cards (mono type, red accent) on a near-black ground, and slides the toolbar out of its way.
-
-1. Toggle **Annotate** and click any element — a comment dialog opens (⌘+Enter to save)
-2. A numbered amber pin appears. Add as many annotations as you want — **multiple pins on the same element are supported** (they stack side-by-side)
-3. **Drag to batch-select**: in Annotate mode, drag a marquee over a region — every top-level element fully inside it gets selected (if the selection collapses to a single wrapper, it descends into its children), then one comment creates a **group annotation** (one pin, up to 30 elements). The pin popup shows a "요소 N개" chip and outlines every member; the agent receives per-element selectors and source locations
-4. Click a pin to edit the comment, resolve/reopen, or delete it
-5. Ask the agent to apply them: it calls `annotation_list`, edits the files, then calls `annotation_resolve` per item — the pin turns into a green ✓ in real time, with the agent's resolution note in the pin popup
-6. Annotations live on the server, so they survive page reloads, navigation, and HMR. Pins re-anchor via `data-at` → CSS path → selector
-7. **Pins are page-scoped**: each pin only renders on the page (pathname) where it was created — navigating elsewhere hides it, coming back restores it. SPA route changes (pushState) are detected without a reload. The toolbar count and **Copy Prompt** cover the current page; `annotation_list` / `annotation_to_prompt` still return every page (each item carries its `pageUrl`)
-8. No MCP? Press **Copy Prompt** to copy the current page's annotation set as a markdown task list for any AI coding agent
-9. **Bulk manage (Manage ▾)**: resolve or delete all annotations at once, scoped to **this page** or **all pages**. Delete is two-click (arms → confirm) to avoid accidents. Counts update live as you work
-
-Each annotation carries: comment, status, element name, robust CSS path, source location (`data-at`), UI term, computed styles, text, size, and a truncated HTML snippet.
-
-> The annotation UI ships with the inject proxy (`preview_attach`). For `preview_start` sessions, attach to the Vite URL if you need annotations.
-
-## What Claude sees on each click
-
-`inspector_get_selection` returns:
-
-- `sourceLocation` — `{ file, line, column }` from the `data-at` attribute injected by the Vite plugin
-- `elementName` — the exact identifier of the element with priority resolution:
-  `id` → `data-testid` → `aria-label` → `aria-labelledby` → `<label for>` → component name (from source filename) → `name` → `alt` → `title` → `placeholder` → first class → tag.
-  Returned with `primary`, `primarySource`, plus the full set (`componentName`, `id`, `testId`, `ariaLabel`, `role`, `selector`, …)
-- `uiTerm` / `uiDescription` — UI/UX terminology inferred from tag, role, class patterns, and computed-style heuristics (Card, Hero Section, Stack Layout, …)
-- `tag`, `className`, `textContent` (truncated)
-- `boundingRect` — `{ x, y, width, height }`
-- `computedStyles` — background, color, font, padding, margin, display, position, size, border-radius, gap
-- `parentChain` — up to the body, with id/first-class shorthand
-
-The information panel that pops up in the browser displays the same data — with the exact name shown prominently at the top alongside the source badge.
-
-## Workflow
-
-1. Start or attach a preview (`preview_start` or `preview_attach`)
-2. Toggle the inspector (bottom-right button in the browser, or `preview_select_element` with `action: enable_inspector`)
-3. Click an element in the page — the side panel shows its exact name, source location, design term, and styles
-4. Ask Claude "change the padding on this"
-5. Claude calls `inspector_get_selection`, reads the file at `sourceLocation.file:line`, and edits it
-6. Vite HMR reloads automatically
-
-See `~/.claude/skills/ui-inspector/SKILL.md` for the skill that wires this up.
+- 원본: [beyondworks/UI-Inspector](https://github.com/beyondworks/UI-Inspector)
+- 이 저장소는 원본의 Git 기록을 유지하는 GitHub 포크이며 Codex 설정과 안내만 추가합니다.

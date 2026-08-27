@@ -3,50 +3,80 @@ import path from "node:path";
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { assertProjectName, assertSafeRemovalTarget, resolveInside } from "./path-safety.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE_DIR = path.join(os.tmpdir(), "gemini-preview");
+const BASE_DIR = path.join(os.tmpdir(), "ui-inspector-preview");
+const FRAMEWORKS = new Set(["react", "vue", "vanilla"]);
+
+function npmInvocation() {
+  if (process.platform !== "win32") {
+    return { command: "npm", args: ["install", "--no-audit", "--no-fund"] };
+  }
+
+  const npmCli = process.env.npm_execpath || path.join(
+    path.dirname(process.execPath),
+    "node_modules",
+    "npm",
+    "bin",
+    "npm-cli.js"
+  );
+  if (!fs.existsSync(npmCli)) {
+    throw new Error("npm CLI not found. Install Node.js with npm and restart Codex.");
+  }
+  const packageManagerArgs = /pnpm(?:\.c?m?js)?$/i.test(path.basename(npmCli))
+    ? ["install", "--lockfile=false", "--ignore-scripts"]
+    : ["install", "--no-audit", "--no-fund"];
+  return {
+    command: process.execPath,
+    args: [npmCli, ...packageManagerArgs],
+  };
+}
 
 export class ProjectScaffold {
   async create(projectName, framework = "react", initialCode = {}, designTokens = null) {
-    const projectDir = path.join(BASE_DIR, projectName);
+    const safeName = assertProjectName(projectName);
+    if (!FRAMEWORKS.has(framework)) {
+      throw new Error(`Unknown framework: ${framework}`);
+    }
+
+    fs.mkdirSync(BASE_DIR, { recursive: true });
+    const projectDir = fs.mkdtempSync(path.join(BASE_DIR, `${safeName}-`));
     const templateDir = path.join(__dirname, "templates", framework);
 
     if (!fs.existsSync(templateDir)) {
       throw new Error(`Unknown framework: ${framework}. Template not found at ${templateDir}`);
     }
 
-    // 1. Clean existing if any
-    if (fs.existsSync(projectDir)) {
-      fs.rmSync(projectDir, { recursive: true, force: true });
-    }
-    fs.mkdirSync(projectDir, { recursive: true });
-
-    // 2. Copy template recursively
+    // 1. Copy template recursively
     await this.copyTemplate(templateDir, projectDir);
 
-    // 3. Inject initial code files
+    // 2. Inject initial code files
     if (initialCode && Object.keys(initialCode).length > 0) {
       await this.injectFiles(projectDir, initialCode);
     }
 
-    // 4. Inject design tokens into index.css if provided
+    // 3. Inject design tokens into index.css if provided
     if (designTokens) {
       await this.injectDesignTokens(projectDir, designTokens);
     }
 
-    // 5. npm install (execFileSync with fixed args — no shell injection risk)
+    // 4. npm install (invoke npm's JS CLI through Node on Windows)
     try {
-      execFileSync("npm", ["install"], {
+      const { command, args } = npmInvocation();
+      execFileSync(command, args, {
         cwd: projectDir,
-        timeout: 60000,
+        timeout: 300000,
         stdio: "pipe",
       });
     } catch (err) {
-      throw new Error(`npm install failed: ${err.stderr?.toString() ?? err.message}`);
+      try { await this.cleanup(projectDir); } catch (_) {}
+      throw new Error(
+        `Dependency installation failed: ${err.stderr?.toString() || err.stdout?.toString() || err.message}`
+      );
     }
 
-    // 6. Return result
+    // 5. Return result
     const fileTree = await this.buildFileTree(projectDir);
     return { projectDir, fileTree };
   }
@@ -69,12 +99,7 @@ export class ProjectScaffold {
 
   async injectFiles(projectDir, fileMap) {
     for (const [relPath, content] of Object.entries(fileMap)) {
-      const absPath = path.join(projectDir, relPath);
-      // Prevent path traversal: ensure the resolved path stays inside projectDir
-      const resolved = path.resolve(absPath);
-      if (!resolved.startsWith(path.resolve(projectDir))) {
-        throw new Error(`Path traversal attempt blocked: ${relPath}`);
-      }
+      const resolved = resolveInside(projectDir, relPath);
       fs.mkdirSync(path.dirname(resolved), { recursive: true });
       fs.writeFileSync(resolved, content, "utf8");
     }
@@ -122,8 +147,9 @@ export class ProjectScaffold {
   }
 
   async cleanup(projectDir) {
-    if (fs.existsSync(projectDir)) {
-      fs.rmSync(projectDir, { recursive: true, force: true });
+    const safeTarget = assertSafeRemovalTarget(BASE_DIR, projectDir);
+    if (fs.existsSync(safeTarget)) {
+      fs.rmSync(safeTarget, { recursive: true, force: true });
     }
   }
 }

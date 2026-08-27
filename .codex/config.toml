@@ -1,0 +1,8 @@
+[mcp_servers.ui_inspector]
+command = "node"
+args = ["servers/inspector-server.mjs"]
+cwd = "."
+enabled = true
+required = false
+startup_timeout_sec = 20
+tool_timeout_sec = 360

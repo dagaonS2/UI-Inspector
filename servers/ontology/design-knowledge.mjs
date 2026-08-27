@@ -295,7 +295,7 @@ export const ANTI_AI_CHECKLIST = [
   "No emoji as UI icons or status indicators — use proper icon set (Lucide, Heroicons, Phosphor).",
   "Copy necessity: if removing text still makes UI understandable via layout/icons/position, remove it.",
   "Decoration justification: every blur/glow/animated entrance must answer 'what does this help understand?'",
-  "Avoid 'Claude style' defaults: excessive bauhaus, liquid glass, apple-like without brand reason.",
+    "Avoid generic AI-generated defaults: excessive bauhaus, liquid glass, or Apple-like styling without a brand reason.",
   "Don't use generic SaaS aesthetics that look machine-generated.",
   "Suggest photography, patterns, textures over solid color fills.",
   "Typography combinations that create contrast, not monotone font stacks.",

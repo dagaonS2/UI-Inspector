@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import net from "node:net";
+import path from "node:path";
 
 const READY_TIMEOUT_MS = 30000;
 const SIGKILL_DELAY_MS = 3000;
@@ -16,12 +18,16 @@ export class ViteLauncher {
    */
   async start(projectDir, port = 5173) {
     const availablePort = await this.findAvailablePort(port);
+    const viteCli = path.join(projectDir, "node_modules", "vite", "bin", "vite.js");
+    if (!fs.existsSync(viteCli)) {
+      throw new Error("Vite is not installed in the preview project. Run dependency installation first.");
+    }
 
     return new Promise((resolve, reject) => {
       // stdio MUST be ["ignore", "pipe", "pipe"] — MCP uses stdio for transport
       const viteProcess = spawn(
-        "npx",
-        ["vite", "--port", String(availablePort), "--host", "--strictPort"],
+        process.execPath,
+        [viteCli, "--port", String(availablePort), "--host", "127.0.0.1", "--strictPort"],
         {
           cwd: projectDir,
           stdio: ["ignore", "pipe", "pipe"],
@@ -30,7 +36,7 @@ export class ViteLauncher {
       );
 
       let settled = false;
-      const url = `http://localhost:${availablePort}`;
+      const url = `http://127.0.0.1:${availablePort}`;
 
       const timer = setTimeout(() => {
         if (settled) return;

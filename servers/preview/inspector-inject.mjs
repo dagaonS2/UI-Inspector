@@ -434,7 +434,7 @@ function connectWS() {
 
   ws.onopen = function() {
     reconnectAttempts = 0;
-    console.log("[Gemini Inspector] Connected to WSBridge on port " + WS_PORT);
+    console.log("[UI Inspector] Connected to WSBridge on port " + WS_PORT);
   };
 
   ws.onmessage = function(event) {
@@ -502,7 +502,7 @@ console.error = function() {
       parts.push(typeof a === "string" ? a : (a && a.message) ? a.message : String(a));
     }
     var joined = parts.join(" ");
-    if (joined.indexOf("[Gemini Inspector]") === -1) {
+    if (joined.indexOf("[UI Inspector]") === -1) {
       wsSend("runtime_error", { kind: "console.error", message: joined.slice(0, 500) });
     }
   } catch(err) {}
@@ -1690,7 +1690,7 @@ document.addEventListener("mouseup", function(e) {
       openGroupCommentDialog(selected, e.clientX, e.clientY);
     }
   } catch(err) {
-    console.error("[Gemini Inspector] Marquee handler error:", err);
+    console.error("[UI Inspector] Marquee handler error:", err);
   }
   /* keep didDrag until after the click event fires, then reset */
   setTimeout(function() { didDrag = false; }, 0);
@@ -1746,7 +1746,7 @@ document.addEventListener("click", function(e) {
     try {
       openCommentDialog(target, e.clientX, e.clientY);
     } catch(err) {
-      console.error("[Gemini Inspector] Annotate handler error:", err);
+      console.error("[UI Inspector] Annotate handler error:", err);
     }
     return;
   }
@@ -1765,7 +1765,7 @@ document.addEventListener("click", function(e) {
     renderPanel(info);
     wsSend("element_selected", info);
   } catch(err) {
-    console.error("[Gemini Inspector] Click handler error:", err);
+    console.error("[UI Inspector] Click handler error:", err);
   }
 }, true);
 
@@ -1806,6 +1806,6 @@ document.addEventListener("keydown", function(e) {
 /* ── Init ─────────────────────────────────────────────────────── */
 updateToolbarState();
 connectWS();
-console.log("[Gemini Inspector] Injected. WSBridge port: " + WS_PORT);
+console.log("[UI Inspector] Injected. WSBridge port: " + WS_PORT);
 })();`;
 }

@@ -100,7 +100,7 @@ export function PreviewShell() {
         backgroundColor: "#0f172a", borderBottom: "1px solid #1e293b", flexShrink: 0,
       }}>
         <span style={{ color: "#3b82f6", fontWeight: "bold", fontSize: "14px", marginRight: "16px" }}>
-          Gemini Preview
+          UI Inspector Preview
         </span>
         <button onClick={toggleInspector} style={{
           padding: "4px 12px", borderRadius: "4px", border: "1px solid",

@@ -4,9 +4,9 @@
  * UI Inspector — MCP Server v1.0.0
  *
  * Live preview + element inspector for any web project. Click an element in
- * the browser and Claude can read the code location, computed styles, and
- * UI/UX terminology back through MCP. No external LLM calls — all reasoning
- * happens in Claude itself.
+ * the browser and Codex can read the code location, computed styles, and
+ * UI/UX terminology back through MCP. The server makes no external LLM calls;
+ * reasoning stays in the active coding-agent session.
  *
  * Tools (18):
  *   Preview (8):     preview_start, preview_attach, preview_update,
@@ -62,6 +62,11 @@ const server = new Server(
   },
   {
     capabilities: { tools: {} },
+    instructions:
+      "Use inspector_get_selection when the user refers to a selected UI element. " +
+      "For annotation tasks, call annotation_list, edit the referenced project files, verify the change with preview_errors and a browser check when needed, then call annotation_resolve for each completed ID with a short note. " +
+      "Never resolve unverified work or delete annotations unless the user explicitly asks. " +
+      "Use preview_attach for an existing development server and preview_start only for an isolated generated preview.",
   }
 );
 
@@ -140,7 +145,7 @@ const TOOLS = [
       type: "object",
       properties: {
         session_id: { type: "string" },
-        target_framework: { type: "string", enum: ["nextjs", "vite-react", "vite-vue", "cra", "astro", "remix", "nuxt"] },
+        target_framework: { type: "string", enum: ["nextjs", "vite-react", "vite-vue", "astro", "remix", "nuxt"] },
         output_path: { type: "string" },
         include_dependencies: { type: "boolean" },
       },

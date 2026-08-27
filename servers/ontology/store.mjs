@@ -2,14 +2,14 @@
  * Design Ontology Store
  *
  * 인메모리 저장소 + JSON 파일 영속화.
- * 토큰 저장소와 동일한 ~/.gemini-design-agent/ 경로 사용.
+ * UI Inspector 전용 ~/.ui-inspector/ 경로 사용.
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
-const STORE_DIR = path.join(os.homedir(), ".gemini-design-agent");
+const STORE_DIR = path.join(os.homedir(), ".ui-inspector");
 const STORE_PATH = path.join(STORE_DIR, "ontology-store.json");
 
 // ──────────────────────────────────────────

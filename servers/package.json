@@ -1,11 +1,15 @@
 {
   "name": "ui-inspector-mcp-server",
-  "version": "1.0.0",
-  "description": "MCP server for live preview + element inspector. Click any element in the browser, get the code location, styles, and UI/UX terminology back in Claude.",
+  "version": "1.1.0",
+  "description": "MCP server for live preview + element inspector. Click any element in the browser and return its code location, styles, and UI/UX terminology to Codex.",
   "type": "module",
   "main": "inspector-server.mjs",
   "scripts": {
-    "start": "node inspector-server.mjs"
+    "start": "node inspector-server.mjs",
+    "test": "node preview/path-safety.test.mjs && node ontology/test-samples.mjs"
+  },
+  "engines": {
+    "node": ">=18.14.1"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
