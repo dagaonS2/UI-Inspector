@@ -13,19 +13,30 @@
 
 ## 준비물
 
-- [Node.js](https://nodejs.org/) 18.14.1 이상(권장: 현재 LTS)
 - OpenAI Codex 데스크톱 앱, IDE 확장 또는 CLI
 
-확인:
+Codex 데스크톱 앱에서 전역 설치할 때는 Codex에 포함된 실행 환경을 사용할 수 있으므로 Node.js를 별도 프로그램으로 먼저 설치할 필요가 없습니다. 일반 터미널에서 서버를 직접 실행하려는 경우에만 Node.js 18.14.1 이상이 필요합니다.
 
-```bash
-node --version
-npm --version
+## 권장 설치: Codex 전역
+
+Codex에 저장소 주소와 함께 다음처럼 요청합니다.
+
+```text
+https://github.com/dagaonS2/UI-Inspector
+이 저장소를 Codex 전역 UI Inspector로 설치해줘.
+시스템 PATH에 node가 없으면 Codex에 포함된 Node 실행 환경을 사용하고,
+ui_inspector MCP 서버와 ui-inspector Skill을 사용자 전역으로 등록해줘.
 ```
 
-`node` 명령을 찾을 수 없다면 Node.js를 설치한 다음 Codex를 다시 시작하세요.
+설치 후 Codex를 다시 시작하거나 새 task를 열고 다음처럼 사용합니다.
 
-## 설치
+```text
+$ui-inspector 현재 프로젝트의 개발 서버를 열어줘.
+```
+
+또는 자연어로 `UI Inspector로 현재 프로젝트 서버를 실행해줘`라고 요청해도 됩니다. Claude용 `/ui-inspector` 사용자 명령을 Codex에서 그대로 등록하는 방식이 아니라, Codex에서는 전역 MCP와 `$ui-inspector` Skill을 함께 사용합니다.
+
+## 수동 설치: 저장소 범위
 
 ```bash
 git clone https://github.com/dagaonS2/UI-Inspector.git
@@ -47,7 +58,7 @@ enabled = true
 2. 새 task를 시작하거나 Codex를 다시 시작해 `.codex/config.toml`을 다시 불러옵니다.
 3. MCP 서버 목록에서 `ui_inspector`가 활성화됐는지 확인합니다.
 
-CLI에서 사용자 전역 설정으로 직접 등록해야 하는 경우에는 저장소 경로를 절대 경로로 바꿔 다음처럼 실행할 수 있습니다.
+CLI에서 사용자 전역 MCP 설정만 직접 등록해야 하는 경우에는 저장소 경로를 절대 경로로 바꿔 다음처럼 실행할 수 있습니다. 이 수동 방식에는 Node.js 18.14.1 이상이 필요합니다.
 
 ```bash
 codex mcp add ui_inspector -- node "C:\absolute\path\UI-Inspector\servers\inspector-server.mjs"
@@ -142,11 +153,11 @@ npm start
 
 문제가 생기면 다음 순서로 확인하세요.
 
-1. `node --version`이 18.14.1 이상인지 확인
-2. `servers/node_modules`가 없다면 `npm ci` 다시 실행
-3. Codex에서 저장소 루트를 열었는지 확인
-4. MCP 서버 목록에서 `ui_inspector` 상태 확인
-5. 설정 변경 후 새 task를 시작하거나 Codex 다시 시작
+1. 전역 설치라면 Codex를 다시 시작하고 `$ui-inspector` Skill과 `ui_inspector` MCP가 보이는지 확인
+2. 수동 설치라면 `node --version`이 18.14.1 이상인지 확인
+3. `servers/node_modules`가 없다면 의존성 설치를 다시 실행
+4. 저장소 범위 설치라면 Codex에서 저장소 루트를 열었는지 확인
+5. MCP 서버 목록에서 `ui_inspector` 상태 확인
 
 현재 버전의 `preview_screenshot`은 실제 이미지를 만들지 않습니다. 시각 확인은 반환된 `preview_url`을 브라우저에서 열어 진행하세요.
 
